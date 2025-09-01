@@ -208,3 +208,4 @@ __marimo__/
 
 # Ignore compilation outputs
 out/
+.DS_Store

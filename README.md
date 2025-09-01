@@ -1,6 +1,6 @@
 # Publication Template Repository
 
-This repository provides a template for writing and compiling academic papers in either ACM or LLNCS (Springer) formats. It includes LaTeX templates, a compilation script, and organized structure for your paper's content.
+This repository provides a template for writing and compiling academic papers in either ACM or LLNCS (Springer) formats. It includes LaTeX templates, a compilation script, and organized structure for your paper's content. Have fun. 
 
 ## Setup
 
