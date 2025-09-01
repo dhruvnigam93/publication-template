@@ -1,0 +1,35 @@
+Conformal prediction \cite{vovk2022algorithmic}, specifically split conformal prediction is a flexible method that quantifies uncertainty in predictions, providing prediction intervals (or sets for classification models) with guaranteed coverage. It makes no assumptions about the model generating the predictions, and can be applied to any supervised learning algorithm.
+The key assumption made by conformal prediction is data exchangeability, which means that the order of the data does not affect its joint distribution.
+
+Formally, given observed examples $\{(X_1, Y_1), (X_2, Y_2), \ldots, (X_n, Y_n)\}$, and a new test point $(X_{n+1}, Y_{n+1})$, exchangeability implies:
+\begin{equation}
+P((X_1, Y_1), \ldots, (X_{n+1}, Y_{n+1})) = P((X_{\pi(1)}, Y_{\pi(1)}), \ldots, (X_{\pi(n+1)}, Y_{\pi(n+1)}))
+\end{equation}
+for any permutation $\pi$ of $\{1, \ldots, n + 1\}$.
+The exchangeability assumption is weaker than the i.i.d. assumption, making conformal prediction more applicable to a wider range of problems. For example drawing balls from an urn without replacement is exchangeable, it is not i.i.d. \cite{lehmann2005testing}.
+
+To apply split conformal prediction in practice, the data is split into two sets: a training set and a calibration set. The training set is used to train the predictive model $f$. The calibration set is used to train the conformal prediction algorithm ensuring that for any new test point $(X_{n+1}, Y_{n+1})$, the prediction set output from the conformal prediction algorithm, $C(X_{n+1})$, contains the true label $Y_{n+1}$ with a probability of at least $1 - \alpha$.
+
+A key component in the conformal prediction algorithm is defining a conformal score, $s_i = g(y_i, \hat{f}(x_i))$, which measures how $conforming$ a data point $(x_i, y_i)$ is to our predictive model. Larger scores correspond to worse agreement between the model predictions $\hat{f}(x_i)$ and the true labels $y_i$. We compute the conformal scores for all calibration points and sort them in ascending order. The $\alpha$-quantile of the scores, $\hat{q}_{1-\alpha}$ is used to construct the prediction set. For a new input $X_{test}$, the prediction set is constructed as:
+$$C(X_{test}) = [\hat{f}(X_{test}) - \hat{q}_{1-\alpha}, \hat{f}(X_{test}) + \hat{q}_{1-\alpha}]$$
+
+This prediction set $C(X_{test})$ satisfies the coverage guarantee:
+$$P(Y_{test} \in C(X_{test})) \geq 1 - \alpha$$
+where $1 - \alpha$ is the desired coverage level. This implies that the true label $Y_{test}$ will lie within the prediction interval (or set) with a probability of at least $1 - \alpha$.
+
+The key to getting efficient prediction intervals is the choice of an appropriate conformal score. A well-chosen score function will yield narrow prediction intervals, providing useful uncertainty estimates.
+
+Challenges arise when the data is not exchangeable, for example, when the distribution of the data changes over time which is often the case with time series and more generally, panel data. For example, consider a dataset tracking annual GDP growth rates of multiple countries over several years. Each country has unique economic policies, institutional structures, and external influences, leading to different distributions of GDP growth rates. This cross-sectional heterogeneity means observations are not identically distributed across countries, violating exchangeability in the panel dimension. Additionally, a country's GDP growth rate in one year is influenced by its growth in previous years due to factors like investment cycles, policy continuity, and economic momentum. This temporal dependence introduces autocorrelation, violating exchangeability over the time dimension. In such cases, the assumption of exchangeability is violated, leading to inaccurate prediction intervals \cite{barber2022conformal, oliveira2022split}. Weighted conformal prediction has been proposed as a solution to this problem \cite{barber2022conformal}. The idea is to assign weights $w_i \in [0, 1]$ to each calibration point $(X_i, Y_i)$ based on its \textit{similarity} with the test point. The weights are used to compute a weighted quantile, $\hat{q}^w_{1-\alpha}$, of the conformal scores, which is then used to construct the prediction interval. The weighing thus accounts for the non-exchangeability of the data by assigning higher importance to calibration points that are \textit{more exchangeable} with the test point to generate prediction intervals.The weighted quantile, $\hat{q}^w_{1-\alpha}$, is then formally defined as the smallest value that satisfies the following inequality:
+
+\begin{equation}
+\frac{\sum_{i=1}^{|D_{cal}|} w_i \cdot I\{s_i \geq \hat{q}^w_{1-\alpha}\}}{\sum_{i=1}^{|D_{cal}|} w_i} \leq \alpha
+\end{equation}
+
+where $I\{\cdot\}$ is the indicator function. The prediction interval is then:
+$$C(X_{n+1}) = [\hat{f}(X_{n+1}) - \hat{q}^w_{1-\alpha}, \hat{f}(X_{n+1}) + \hat{q}^w_{1-\alpha}]$$
+
+The Coverage gap, defined as the difference between the required coverage level $1 - \alpha$ and the actual coverage achieved is theoretically bounded as:
+\begin{equation}
+\text{Coverage gap} \leq \frac{\sum_{i=1}^n w_i \cdot d_{TV}(Z, Z^{(i)})}{1 + \sum_{i=1}^n w_i}
+\end{equation}
+where $d_{TV}(Z, Z^{(i)})$ is the total variation distance between the distribution of the full data sequence $Z$ and the sequence $Z^{(i)}$ obtained by swapping the $i$-th calibration point with the test point \cite{barber2022conformal}. This bound implies that if the data points are nearly exchangeable (small total variation distances), the coverage gap remains minimal and the choice of weighing is irrelevant. However, when the data is not-exchangeable, by carefully choosing the weights $w_i$, we can minimize the coverage gap.

@@ -1,0 +1,72 @@
+
+\subsection{Datasets}
+
+We evaluate our weighted conformal prediction framework using four real-world \ datasets, each offering unique characteristics and challenges. All of these datsets are customer transaction datasets across significant time periods. They have a high cardinality of entities and exhibit complextemporal dynamics.
+Table \ref{tab:dataset_overview} provides a comprehensive overview of these datasets.
+
+\begin{table*}[t]
+\centering
+\caption{Overview of Datasets Used in Experiments}
+\label{tab:dataset_overview}
+\begin{tabular}{lllll}
+\hline
+\textbf{Dataset} & \textbf{Size (Users/Trans.)} & \textbf{Date Range} & \textbf{Sector} & \textbf{Key Features} \\
+\hline
+Open e-commerce 1.0 Dataset \cite{berke2023open} & 5,027 / 171K & 2018-01 to 2024-08 & E-commerce & Demographics included \\
+Online Retail II \cite{chen2012online} & 5,942 / 11K & 2009-12 to 2011-12 & Gift retail & Wholesale focus \\
+The Complete Journey \cite{dunnhumby2014complete} & 2,500 / 57K & 2016-01 to 2017-12 & Retail & Marketing history \\
+Elo Merchant \cite{elo2019merchant} & 18,987 / 139K & 2017-01 to 2018-02 & Payments & Multi-merchant \\
+\hline
+\end{tabular}
+\end{table*}
+
+\textbf{Open e-commerce 1.0 Dataset:} This dataset \cite{berke2023open} contains transaction data from Amazon's retail platform, spanning from January 2018 to August 2024. The dataset includes detailed customer purchase histories, product metadata, and demographic information across various product categories, making it particularly valuable for analyzing e-commerce purchasing patterns and customer behavior.
+
+\textbf{Online Retail II Dataset:} This comprehensive dataset \cite{chen2012online} contains over 1 million transactions from a UK-based non-store online retail company specializing in gift-ware. It includes detailed transaction information including product details, quantities, prices, and customer locations.
+
+\textbf{The Complete Journey Dataset:} Provided by Dunnhumby \cite{dunnhumby2014complete}, this dataset tracks 2,500 households(customers) over two years, including complete purchase histories and marketing exposure data. It is particularly valuable for analyzing marketing effectiveness alongside purchase patterns.
+
+\textbf{Elo Merchant Dataset:} This dataset \cite{elo2019merchant} from a Brazilian payment platform contains rich transaction data across multiple merchant categories, offering insights into cross-merchant customer behavior patterns and loyalty dynamics.
+
+For all datasets, we structure the data as a panel where each customer is an entity, and the target variable $y_{i,t}$ represents the total spend of user $i$ on day $t$. This consistent structure allows us to evaluate our methodology across diverse retail contexts while maintaining comparability.
+
+\subsection{Experimental Setup}
+
+Our experimental pipeline consists of four main stages: data processing, temporal splitting, supervised learning, and conformal prediction evaluation. The entire process is orchestrated through a distributed computing framework to handle the scale of our experiments efficiently.
+
+\textbf{Data Processing and Splitting}: For each dataset, we first aggregate transaction-level data to daily user spending patterns. We employ a temporal split strategy where data is divided into training and test sets using a chronological cutoff at the 50th percentile of available dates.
+
+\textbf{Supervised Learning Model}: We employ a Random Forest Regressor as our base predictive model $f(x)$, chosen for its robustness and ability to capture complex spending patterns. The model is trained on historical user behavior, incorporating temporal features computed over rolling windows. For each user $i$ at time $t$, the model predicts their expected spending $\hat{y}_{i,t}$ based on their past activity patterns.
+
+\textbf{Entity Similarity Measure}: To capture customer heterogeneity, we compute customer embeddings based on their historical spending behaviors. These embeddings are then used to calculate the entity distance, $d_{entity}(i, i')$, as defined in the method section, which measures the similarity between customers.
+
+\textbf{Nonconformity Scores}: For all conformal prediction variants, we use the absolute residual between the predicted value from the random forest model ($\hat{f}(X_{i,t})$) and the actual value ($y_{i,t}$) as the nonconformity score:
+
+$$s_{i,t} = |y_{i,t} - \hat{f}(X_{i,t})|$$
+
+An accurate predictive model $\hat{f}$ is essential for obtaining meaningful nonconformity scores. The random forest model is trained on the training set to learn $\hat{f}$.
+
+\textbf{Hyperparameter Selection}: The hyperparameters $\beta_{time}$ (temporal decay rate) and $\beta_{entity}$ (cross-sectional decay rate) are selected using cross-validation on the calibration set. We perform a grid search over a predefined range of values to optimize the trade-off between expected daily coverage gap and average interval width.
+
+\subsection{Evaluation Metrics}
+
+We compare the following conformal prediction methods:
+
+\begin{enumerate}
+\item \textbf{Standard Conformal Prediction}: The traditional conformal prediction method without any weighting. To estiamte the prediction intervals for customer $i$ at time $t$, we use the conformal scores of all customers for all previous days.
+\item \textbf{Time-Weighted Conformal Prediction}: Weighted conformal prediction using temporal proximity only ($\beta_{entity} = 0$, $\beta_{time} > 0$). To estiamte the prediction intervals for customer $i$ at day $t$, we use the conformal scores of all customers for all previous days, weighted by the temporal proximity between the days and $t$.
+\item \textbf{QUPEC}: Weighted conformal prediction using both temporal and cross-sectional (entity) proximity ($\beta_{entity} > 0$, $\beta_{time} > 0$). To estiamte the prediction intervals for customer $i$ at day $t$, we use the conformal scores of all customers for all previous days, weighted by the temporal proximity between the previous day and $t$ and the cross-sectional proximity between the customers.
+\end{enumerate}
+
+The performance of these methods is evaluated based on two key metrics:
+
+\begin{itemize}
+\item \textbf{Expected Daily Coverage Gap}: For each day $d_t$ in the test set, the coverage gap is calculated as:
+$$\text{Coverage Gap}(d_t) = \max(0, \text{required\_coverage} - \text{coverage}(d_t))$$
+The expected daily coverage gap is the average of these daily coverage gaps over the test period.
+\item \textbf{Average Interval Width}: The average width of the prediction intervals across all predictions in the test set:
+$$\text{Average Interval Width} = \frac{1}{n_{test}} \sum_{i=1}^{n_{test}} (\text{upper\_bound}_{i,t} - \text{lower\_bound}_{i,t})$$
+\end{itemize}
+
+These metrics provide insights into the reliability (coverage) and efficiency (interval width) of the prediction intervals.
+

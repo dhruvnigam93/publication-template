@@ -1,0 +1,89 @@
+\documentclass[sigconf,anonymous]{acmart}
+
+\usepackage{booktabs} % For formal tables
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{placeins}
+\usepackage{subcaption}
+\usepackage{graphicx}
+
+% Copyright
+\makeatletter
+\@ifclassloaded{acmart}{\
+  \setcopyright{none}\
+  \settopmatter{printacmref=false}\
+  \renewcommand\footnotetextcopyrightpermission[1]{}\
+  \pagestyle{plain}\
+}{}\
+\makeatother
+
+\begin{document}
+\title{QUPEC: Quantifying Uncertainty in Panel data using Weighted Conformal Prediction}
+\makeatletter
+\@ifclassloaded{acmart}{\
+  \author{Dhruv Nigam}\
+  \affiliation{%
+    \institution{Dream 11}\
+    \city{Mumbai}\
+    \state{Maharashtra}\
+    \country{India}\
+  }\
+  \email{dhruv.nigam@dream11.com}\
+  \begin{abstract}\
+  \input{text/abstract}\
+  \end{abstract}\
+  \maketitle\
+}{\
+  \author{Dhruv Nigam}\
+  \institute{Dream 11 \\\\ Mumbai, Maharashtra, India \\\\ \\email{dhruv.nigam@dream11.com}}\
+  \maketitle\
+  \begin{abstract}\
+  \input{text/abstract}\
+  \end{abstract}\
+}\
+\makeatother
+
+
+\section{Introduction}
+\input{text/Introduction}
+
+\section{Background}
+\input{text/background}
+
+\section{Related Work}
+\input{text/relatedwork}
+
+\section{Method}
+\input{text/method}
+
+\section{Experiments}
+\input{text/experiment}
+
+\section{Results and Analysis}
+\input{text/results_analysis}
+
+\section{Discussion}
+\input{text/discussion}
+
+\FloatBarrier
+\section{Conclusion}
+\input{text/conclusion}
+
+\makeatletter
+\@ifclassloaded{acmart}{\
+  \bibliographystyle{ACM-Reference-Format}\
+}{\
+  \bibliographystyle{splncs04}\
+}\
+\makeatother
+\bibliography{bibliography}
+
+\clearpage
+\appendix
+\section*{Appendix}
+\input{text/appendix_implementation}
+
+\end{document}

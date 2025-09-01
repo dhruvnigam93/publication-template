@@ -1,0 +1,26 @@
+The complete experimental pipeline is implemented in Python and orchestrated through distributed computing using Ray framework for efficient parallel processing. Below we provide additional technical details that may be valuable for reproducibility:
+\subsection{Feature Engineering and Data Processing}
+For each user, we compute rolling statistics over 60-day windows including:
+\begin{itemize}
+\item Sum, mean, and standard deviation of spending amounts
+\item Sum, mean, and standard deviation of transaction counts
+\item Binary indicators of user activity in the past window
+\end{itemize}
+These features are designed to capture both the magnitude and volatility of user spending patterns, as well as their engagement frequency.
+\subsection{Entity Similarity Measure}
+To quantify user similarity for weighted conformal prediction, we create user embeddings by:
+\begin{itemize}
+\item Aggregating historical behavior patterns at the user level
+\item Computing mean values of key metrics (total spend, transaction frequency)
+\item Applying z-score normalization to ensure consistent scaling
+\item Storing embeddings in a format optimized for efficient similarity computations
+\end{itemize}
+\subsection{Distributed Evaluation Framework}
+The hyperparameter search for $\beta_{time}$ and $\beta_{entity}$ is parallelized using Ray:
+\begin{itemize}
+\item The parameter space for both $\beta_{time}$ and $\beta_{entity}$ is a grid of values ranging from 0 to 100 in steps of 5.
+\item Each worker independently evaluates a specific ($\beta_{time}$, $\beta_{entity}$) combination.
+\item Results are aggregated and stored in a distributed database
+\item Evaluation metrics are computed in parallel for efficiency
+\end{itemize}
+The complete implementation, including data processing scripts and evaluation code, is available in our public repository\footnote{Repository link to be added upon publication}.

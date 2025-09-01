@@ -1,0 +1,64 @@
+Consider a dataset of $n$ independent and identically distributed (i.i.d.) observations $\{(X_i, y_i)\}_{i=1}^n$, where $X_i \in \mathbb{R}^d$ are feature vectors and $y_i \in \mathbb{R}$ are responses. The goal is to predict the response $y_{n+1}$ corresponding to a new feature vector $X_{n+1}$, while providing a prediction interval with a coverage guarantee.
+
+In standard split conformal prediction, the dataset is partitioned into a training set $D_{train}$ and a calibration set $D_{cal}$. The complete algorithm is given in Algorithm 1.
+
+\begin{algorithm}
+\caption{Standard Split Conformal Prediction}
+\begin{algorithmic}[1]
+\Require Dataset $\{(X_i, y_i)\}_{i=1}^n$, miscoverage level $\alpha$, new input $X_{n+1}$
+\State Split the dataset into training set $D_{train}$ and calibration set $D_{cal}$
+\State Train predictive model $\hat{f}$ using $D_{train}$
+\For{$(X_i, y_i) \in D_{cal}$}
+    \State Compute conformal score $s_i = g(\hat{f}(X_i), y_i)$
+\EndFor
+\State Compute quantile $\hat{q}_{1-\alpha} = \text{Quantile}_{1-\alpha}(\{s_i\}_{i=1}^{|D_{cal}|})$
+\State Construct prediction interval $C(X_{n+1}) = [\hat{f}(X_{n+1}) - \hat{q}_{1-\alpha}, \hat{f}(X_{n+1}) + \hat{q}_{1-\alpha}]$
+\State \Return $C(X_{n+1})$
+\end{algorithmic}
+\end{algorithm}
+
+This method guarantees that the prediction interval $C(X_{n+1})$ satisfies the coverage guarantee - $P(y_{n+1} \in C(X_{n+1})) \geq 1 - \alpha$.
+
+We now extend conformal prediction to panel data settings, where data are collected from multiple entities over multiple time periods. Consider $N$ entities (e.g., users, companies) observed over $T$ time periods. For each entity $i = 1, \ldots, N$ and time $t = 1, \ldots, T$, we have observations $(X_{i,t}, y_{i,t})$, where $X_{i,t} \in \mathbb{R}^d$ is the feature vector and $y_{i,t} \in \mathbb{R}$ is the continuous response variable. The dataset is constructed as:
+$$D = \{(X_{i,t}, y_{i,t}) : i = 1, \ldots, N; t = 1, \ldots, T\}$$
+
+In panel data, the exchangeability assumption is often violated due to temporal dependencies (data collected over time) and cross-sectional heterogeneity (differences among entities). Therefore, standard conformal prediction methods may not provide valid coverage guarantees. To address the non-exchangeability in panel data, we propose a weighted conformal prediction \cite{barber2022conformal, oliveira2022split} approach that assigns weights to calibration points based on their proximity to the test point in both time and entity dimensions.
+
+Let $(X_{i,t}, y_{i,t})$ be a calibration point, and $(X_{i',t'}, y_{i',t'})$ be a test point for entity $i'$ at time $t'$. We define the weight $w_{i,t}$ assigned to calibration point $(X_{i,t}, y_{i,t})$ as:
+$$w_{i,t} = w_{time}(t, t') \times w_{entity}(i, i')$$
+where $w_{time}(t, t')$ measures temporal proximity between times $t$ and $t'$ and $w_{entity}(i, i')$ measures cross-sectional similarity between entities $i$ and $i'$.
+
+We define these weights using exponential kernels:
+\begin{align}
+w_{time}(t, t') &= \exp(-\beta_{time} \cdot |t - t'|) \\
+w_{entity}(i, i') &= \exp(-\beta_{entity} \cdot d_{entity}(i, i'))
+\end{align}
+where $\beta_{time}, \beta_{entity} \geq 0$ are hyperparameters controlling the decay rate, and $d_{entity}(i, i')$ is a distance metric between entities $i$ and $i'$, which can be defined based on entity-specific features or historical behavior.
+
+Also, instead of using a fixed calibration dataset, we continuously update the calibration data by including the most recent observations up to the current time. At each time $t'$, the calibration set $D_{cal}(t')$ consists of all available observations up to time $t' - 1$:
+$$D_{cal}(t') = \{(X_{i,t}, y_{i,t}) : \forall i, \forall t < t'\}$$
+
+This rolling calibration ensures that the conformal scores and quantiles reflect the current data distribution.
+
+\begin{algorithm}
+\caption{QUPEC: Weighted Conformal Prediction for Panel Data}
+\begin{algorithmic}[1]
+\Require Initial training data $D_{train}$, miscoverage level $\alpha$, sequence of test inputs $\{(X_{i',t'}, i', t')\}$
+\State Train predictive model $\hat{f}$ using $D_{train}$
+\For{test input $(X_{i',t'}, i', t')$}
+    \State Update calibration set $D_{cal}(t') = \{(X_{i,t}, y_{i,t}) : \forall i, \forall t < t'\}$
+    \For{$(X_{i,t}, y_{i,t}) \in D_{cal}(t')$}
+        \State Compute conformal score $s_{i,t} = |y_{i,t} - \hat{f}(X_{i,t})|$
+        \State Compute weights: $w_{i,t} = \exp(-\beta_{time} \cdot |t - t'|) \times \exp(-\beta_{entity} \cdot d_{entity}(i, i'))$
+    \EndFor
+    \State Compute weighted quantile $\hat{q}^w_{1-\alpha}$ such that: $\frac{\sum_{(i,t)} w_{i,t} \cdot I\{s_{i,t} \geq \hat{q}_{1-\alpha}\}}{\sum_{(i,t)} w_{i,t}} \leq \alpha$
+    \State Compute prediction $\hat{f}(X_{i',t'})$
+    \State Construct prediction interval: $C(X_{i',t'}) = [\hat{f}(X_{i',t'}) - \hat{q}^w_{1-\alpha}, \hat{f}(X_{i',t'}) + \hat{q}^w_{1-\alpha}]$
+    \State Output prediction interval $C(X_{i',t'})$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+The weights $w_{i,t}$ quantify the relevance of each calibration point to the test point, incorporating both temporal proximity and cross-entity structure. Calibration points that are closer in time or more similar in entity characteristics to the test point receive higher weights, thus having a greater influence on the prediction interval.
+
+The distance metric $d_{entity}(i, i')$ can be defined based on entity-specific features and will be domain-specific. The hyperparameters $\beta_{time}$ and $\beta_{entity}$ control the decay rates of the weights and are critical for balancing the trade-off between including more calibration points and emphasizing the most relevant ones. These hyperparameters are selected through cross-validation by choosing the values that minimize the coverage gap on a validation set.
